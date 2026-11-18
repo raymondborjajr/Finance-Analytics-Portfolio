@@ -1,0 +1,52 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NimbusCloud MRR Dashboard (Synthetic Data)</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light;--bg:#f7f8fa;--card:#fff;--tx:#1b2430;--mut:#5d6b7c;--ln:#d9dee5;--ac:#1f4e9c;--ac2:#d9822b;--ok:#2e7d4f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#12161c;--card:#1b222b;--tx:#e8edf3;--mut:#9aa7b8;--ln:#2d3744;--ac:#6ea0ee;--ac2:#f0a55a;--ok:#5cc489}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#12161c;--card:#1b222b;--tx:#e8edf3;--mut:#9aa7b8;--ln:#2d3744;--ac:#6ea0ee;--ac2:#f0a55a;--ok:#5cc489}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:Arial,Helvetica,sans-serif;line-height:1.45}
+.w{max-width:960px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:22px;margin:0 0 4px}p.s{color:var(--mut);margin:0 0 16px;font-size:13px}
+.seg{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
+button{font:inherit;padding:8px 14px;border:1px solid var(--ln);background:var(--card);color:var(--tx);border-radius:8px;cursor:pointer}
+button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.k{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.c{background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:14px}
+.c b{display:block;font-size:22px}.c span{color:var(--mut);font-size:12px}
+.ch{overflow-x:auto}svg{width:100%;min-width:560px;height:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:6px 8px;border-bottom:1px solid var(--ln);text-align:right}th:first-child,td:first-child{text-align:left}
+.note{color:var(--mut);font-size:12px;margin-top:12px}
+</style></head><body><div class="w">
+<h1>NimbusCloud MRR Dashboard</h1>
+<p class="s">Fictional SaaS company, 3 tiers, 12-month forecast. All data is synthetic (portfolio project).</p>
+<div class="seg" id="seg"></div>
+<div class="k" id="k"></div>
+<div class="c ch"><svg id="svg" viewBox="0 0 720 300" role="img" aria-label="MRR forecast versus budget and actual"></svg></div>
+<div class="c" style="margin-top:12px;overflow-x:auto"><table id="t"></table></div>
+<p class="note">Method: Ending customers = beginning + new - churned per tier; MRR = ending customers x price. Scenario multipliers scale new customers and churn. Budget and Jan-Jun actuals are synthetic inputs.</p>
+</div>
+<script>
+var M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+var T=[{n:"Starter",p:29,s:1200,a:150,g:.015,c:.04},{n:"Growth",p:99,s:450,a:45,g:.02,c:.025},{n:"Enterprise",p:399,s:60,a:5,g:.025,c:.01}];
+var S=[{n:"Base",nm:1,cm:1},{n:"Upside",nm:1.15,cm:.85},{n:"Downside",nm:.85,cm:1.2}];
+var BUD=[109500, 117300, 125000, 132700, 140700, 148600, 156700, 164600, 172600, 180500, 188400, 196700],ACT=[110800, 116800, 127600, 128500, 138000, 153700],cur=0;
+function run(s){var mrr=[],cust=[],st=T.map(function(t){return t.s});
+for(var k=0;k<12;k++){var m=0,cu=0;T.forEach(function(t,i){var nw=Math.round(t.a*s.nm*Math.pow(1+t.g,k)),ch=Math.round(st[i]*t.c*s.cm);st[i]=st[i]+nw-ch;m+=st[i]*t.p;cu+=st[i]});mrr.push(m);cust.push(cu)}return{mrr:mrr,cust:cust}}
+function f$(n){return "$"+Math.round(n).toLocaleString("en-US")}
+function draw(){var r=run(S[cur]),start=T.reduce(function(a,t){return a+t.s*t.p},0);
+document.getElementById("seg").innerHTML=S.map(function(s,i){return '<button class="'+(i==cur?"on":"")+'" onclick="cur='+i+';draw()">'+s.n+'</button>'}).join("");
+var d=r.mrr[11];document.getElementById("k").innerHTML=[["Dec MRR",f$(d)],["ARR run-rate",f$(d*12)],["Ending customers",r.cust[11].toLocaleString("en-US")],["MRR growth vs start",((d/start-1)*100).toFixed(0)+"%"]].map(function(x){return '<div class="c"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>'}).join("");
+var all=r.mrr.concat(BUD),mx=Math.max.apply(null,all)*1.05,mn=Math.min.apply(null,all)*.9,X=function(i){return 60+i*(640/11)},Y=function(v){return 260-(v-mn)/(mx-mn)*230};
+function path(a,off){return a.map(function(v,i){return (i?"L":"M")+X(i+(off||0)).toFixed(1)+" "+Y(v).toFixed(1)}).join("")}
+var g="";for(var j=0;j<=4;j++){var v=mn+(mx-mn)*j/4;g+='<line x1="60" x2="700" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="var(--ln)"/><text x="54" y="'+(Y(v)+4)+'" font-size="10" text-anchor="end" fill="var(--mut)">'+f$(v/1000)+'k</text>'}
+M.forEach(function(m,i){g+='<text x="'+X(i)+'" y="282" font-size="10" text-anchor="middle" fill="var(--mut)">'+m+'</text>'});
+g+='<path d="'+path(BUD)+'" fill="none" stroke="var(--mut)" stroke-width="2" stroke-dasharray="5 4"/><path d="'+path(r.mrr)+'" fill="none" stroke="var(--ac)" stroke-width="3"/><path d="'+path(ACT)+'" fill="none" stroke="var(--ac2)" stroke-width="3"/>';
+g+='<g font-size="11" fill="var(--tx)"><text x="64" y="16">Forecast ('+S[cur].n+')</text><text x="190" y="16" fill="var(--mut)">Budget (dashed)</text><text x="300" y="16" fill="var(--ac2)">Actual (Jan-Jun)</text></g>';
+document.getElementById("svg").innerHTML=g;
+var h="<tr><th>Month</th><th>Budget</th><th>Actual</th><th>Forecast</th><th>Fcst vs Budget</th></tr>";
+for(var i=0;i<12;i++){var v=r.mrr[i]/BUD[i]-1;h+="<tr><td>"+M[i]+"-27</td><td>"+f$(BUD[i])+"</td><td>"+(ACT[i]?f$(ACT[i]):"-")+"</td><td>"+f$(r.mrr[i])+"</td><td>"+(v>=0?"+":"")+(v*100).toFixed(1)+"%</td></tr>"}
+document.getElementById("t").innerHTML=h}
+draw();
+</script></body></html>
